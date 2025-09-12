@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
+import { account, ID } from "./lib/appwrite";
 
 type Mode = "login" | "register";
 
@@ -10,6 +11,9 @@ function App() {
   const [password, setPassword] = useState<string>("");
   const [confirmPassword, setConfirmPassword] = useState<string>("");
   const [message, setMessage] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [initializing, setInitializing] = useState<boolean>(true);
+  const [currentUserName, setCurrentUserName] = useState<string | null>(null);
 
   const resetForm = () => {
     setName("");
@@ -24,7 +28,43 @@ function App() {
     resetForm();
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const loadCurrentUser = async () => {
+    try {
+      const user = await account.get();
+      setCurrentUserName(user.name || user.email);
+    } catch {
+      setCurrentUserName(null);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadCurrentUser();
+      } finally {
+        setInitializing(false);
+      }
+    })();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      setLoading(true);
+      await account.deleteSession("current");
+      setCurrentUserName(null);
+      setMessage("Вы вышли из аккаунта");
+      setMode("login");
+      resetForm();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Не удалось выйти";
+      setMessage(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setMessage("");
 
@@ -33,7 +73,19 @@ function App() {
         setMessage("Пожалуйста, заполните email и пароль.");
         return;
       }
-      setMessage(`Успешный вход: ${email}`);
+
+      try {
+        setLoading(true);
+        await account.createEmailPasswordSession(email, password);
+        await loadCurrentUser();
+        setMessage(`Успешный вход: ${email}`);
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Не удалось войти";
+        setMessage(errorMessage);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -50,8 +102,61 @@ function App() {
       setMessage("Пароли не совпадают.");
       return;
     }
-    setMessage(`Регистрация успешна: ${name} (${email})`);
+
+    try {
+      setLoading(true);
+      await account.create(ID.unique(), email, password, name);
+      await account.createEmailPasswordSession(email, password);
+      await loadCurrentUser();
+      setMessage(`Регистрация успешна: ${name} (${email})`);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Не удалось зарегистрироваться";
+      setMessage(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  if (initializing) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300">Загрузка...</p>
+      </div>
+    );
+  }
+
+  if (currentUserName) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <h1 className="text-3xl font-semibold mb-2">
+            Привет, {currentUserName}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">
+            Вы уже авторизованы.
+          </p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loading}
+            className={`inline-flex items-center justify-center rounded-md px-4 py-2 font-medium transition-colors text-white ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-rose-600 hover:bg-rose-700"
+            }`}
+          >
+            {loading ? "Выход..." : "Выйти"}
+          </button>
+          {message && (
+            <p className="mt-4 text-sm text-emerald-600 dark:text-emerald-400">
+              {message}
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -143,9 +248,18 @@ function App() {
 
             <button
               type="submit"
-              className="mt-2 w-full rounded-md bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 transition-colors"
+              disabled={loading}
+              className={`mt-2 w-full rounded-md text-white font-medium py-2 transition-colors ${
+                loading
+                  ? "bg-indigo-400 cursor-not-allowed"
+                  : "bg-indigo-600 hover:bg-indigo-700"
+              }`}
             >
-              {mode === "login" ? "Войти" : "Зарегистрироваться"}
+              {loading
+                ? "Пожалуйста, подождите..."
+                : mode === "login"
+                ? "Войти"
+                : "Зарегистрироваться"}
             </button>
           </form>
 
