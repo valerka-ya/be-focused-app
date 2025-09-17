@@ -13,6 +13,7 @@
 - Reorganized project to Feature-Sliced Design
 - Moved Appwrite client to shared/api/appwrite.ts
 - Simplified app/auth/page.tsx to render AuthForm
+- Updated app/page.tsx with static layout and placeholder handlers
 
 ### Removed
 

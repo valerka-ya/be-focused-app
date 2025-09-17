@@ -40,5 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-\# project docs
+# project docs
 FSD-instruction.md
