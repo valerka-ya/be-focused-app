@@ -2,7 +2,6 @@
 
 import { Client, Account, ID } from "appwrite";
 
-// Prefer Next public envs, fall back to Vite envs for local reuse
 const endpoint =
   typeof process !== "undefined" && process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT;
 
@@ -18,7 +17,7 @@ function ensureClient(): Client {
   if (!endpoint || !projectId) {
     // eslint-disable-next-line no-console
     console.warn(
-      "Missing Appwrite env vars. Provide NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID (or VITE_* fallbacks)."
+      "Missing Appwrite env vars. Provide NEXT_PUBLIC_APPWRITE_ENDPOINT and NEXT_PUBLIC_APPWRITE_PROJECT_ID."
     );
   }
 
