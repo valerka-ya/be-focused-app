@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { getAccount, ID } from "@/services/appwrite";
+import { getAccount, ID } from "@/services/appwrite";
 
 type Mode = "login" | "register";
-// const account = getAccount();
+const account = getAccount();
 
 export default function Auth() {
   const [mode, setMode] = useState<Mode>("login");
@@ -31,12 +31,12 @@ export default function Auth() {
   };
 
   const loadCurrentUser = async () => {
-    // try {
-    //   const user = await account.get();
-    //   setCurrentUserName(user.name || user.email);
-    // } catch {
-    //   setCurrentUserName(null);
-    // }
+    try {
+      const user = await account.get();
+      setCurrentUserName(user.name || (user as any).email);
+    } catch {
+      setCurrentUserName(null);
+    }
   };
 
   useEffect(() => {
@@ -50,74 +50,75 @@ export default function Auth() {
   }, []);
 
   const handleLogout = async () => {
-    // try {
-    //   setLoading(true);
-    //   await account.deleteSession("current");
-    //   setCurrentUserName(null);
-    //   setMessage("Вы вышли из аккаунта");
-    //   setMode("login");
-    //   resetForm();
-    // } catch (err: unknown) {
-    //   const errorMessage =
-    //     err instanceof Error ? err.message : "Не удалось выйти";
-    //   setMessage(errorMessage);
-    // } finally {
-    //   setLoading(false);
-    // }
+    try {
+      setLoading(true);
+      // FIXME
+      await account.deleteSession("current");
+      setCurrentUserName(null);
+      setMessage("Вы вышли из аккаунта");
+      setMode("login");
+      resetForm();
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Не удалось выйти";
+      setMessage(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // setMessage("");
+    setMessage("");
 
-    // if (mode === "login") {
-    //   if (!email || !password) {
-    //     setMessage("Пожалуйста, заполните email и пароль.");
-    //     return;
-    //   }
+    if (mode === "login") {
+      if (!email || !password) {
+        setMessage("Пожалуйста, заполните email и пароль.");
+        return;
+      }
 
-    //   try {
-    //     setLoading(true);
-    //     await account.createEmailPasswordSession(email, password);
-    //     await loadCurrentUser();
-    //     setMessage(`Успешный вход: ${email}`);
-    //   } catch (err: unknown) {
-    //     const errorMessage =
-    //       err instanceof Error ? err.message : "Не удалось войти";
-    //     setMessage(errorMessage);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    //   return;
-    // }
+      try {
+        setLoading(true);
+        await account.createEmailPasswordSession({ email, password });
+        await loadCurrentUser();
+        setMessage(`Успешный вход: ${email}`);
+      } catch (err: unknown) {
+        const errorMessage =
+          err instanceof Error ? err.message : "Не удалось войти";
+        setMessage(errorMessage);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
-    // // register
-    // if (!name || !email || !password || !confirmPassword) {
-    //   setMessage("Пожалуйста, заполните все поля.");
-    //   return;
-    // }
-    // if (password.length < 6) {
-    //   setMessage("Пароль должен быть не короче 6 символов.");
-    //   return;
-    // }
-    // if (password !== confirmPassword) {
-    //   setMessage("Пароли не совпадают.");
-    //   return;
-    // }
+    // register
+    if (!name || !email || !password || !confirmPassword) {
+      setMessage("Пожалуйста, заполните все поля.");
+      return;
+    }
+    if (password.length < 6) {
+      setMessage("Пароль должен быть не короче 6 символов.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage("Пароли не совпадают.");
+      return;
+    }
 
-    // try {
-    //   setLoading(true);
-    //   await account.create(ID.unique(), email, password, name);
-    //   await account.createEmailPasswordSession(email, password);
-    //   await loadCurrentUser();
-    //   setMessage(`Регистрация успешна: ${name} (${email})`);
-    // } catch (err: unknown) {
-    //   const errorMessage =
-    //     err instanceof Error ? err.message : "Не удалось зарегистрироваться";
-    //   setMessage(errorMessage);
-    // } finally {
-    //   setLoading(false);
-    // }
+    try {
+      setLoading(true);
+      await account.create({ userId: ID.unique(), email, password, name });
+      await account.createEmailPasswordSession({ email, password });
+      await loadCurrentUser();
+      setMessage(`Регистрация успешна: ${name} (${email})`);
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Не удалось зарегистрироваться";
+      setMessage(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (initializing) {
